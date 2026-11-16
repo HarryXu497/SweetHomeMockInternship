@@ -2004,10 +2004,10 @@ public class PlanComponent extends JComponent implements PlanView, Scrollable, P
   }
   
   /**
-   * Prints this component plan at the scale given in the home print attributes or at a scale 
+   * Prints this component plan at pageIndex at the scale given in the home print attributes or at a scale
    * that makes it fill <code>pageFormat</code> imageable size if this attribute is <code>null</code>.
    */
-  public int print(Graphics g, PageFormat pageFormat, int pageIndex) {
+  private int printSelectedLevelPlan(Graphics g, PageFormat pageFormat, int pageIndex) {
     List<Selectable> printedItems = getPaintedItems(); 
     Rectangle2D printedItemBounds = getItemsBounds(g, printedItems);
     if (printedItemBounds != null) {
@@ -2074,7 +2074,35 @@ public class PlanComponent extends JComponent implements PlanView, Scrollable, P
       return NO_SUCH_PAGE;
     }
   }
-  
+
+  public int print(Graphics g, PageFormat pageFormat, int pageIndex) {
+    List<Level> levels = this.home.getLevels();
+
+    if (levels.isEmpty()) {
+      return printSelectedLevelPlan(g, pageFormat, pageIndex);
+    }
+
+    List<Level> viewableLevels = new ArrayList<>();
+    for (Level level : levels) {
+      if (level.isViewable()) {
+        viewableLevels.add(level);
+      }
+    }
+
+    if (pageIndex < 0 || pageIndex >= viewableLevels.size()) {
+      return NO_SUCH_PAGE;
+    }
+
+    Level originalSelectedLevel = this.home.getSelectedLevel();
+
+    this.home.setSelectedLevel(viewableLevels.get(pageIndex));
+    // Take the first page of the level's plan
+    int selectedLevelPrintResponse = printSelectedLevelPlan(g, pageFormat, 0);
+
+    this.home.setSelectedLevel(originalSelectedLevel);
+    return selectedLevelPrintResponse;
+  }
+
   /**
    * Returns an image of the selected items displayed by this component 
    * (camera excepted) with no outline at scale 1/1 (1 pixel = 1cm).
